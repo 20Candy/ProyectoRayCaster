@@ -12,9 +12,35 @@ SKY = (8,27,69)
 GROUND = (4,28,4)
 TRANSPARENT = (152,0,136,0)
 
-def text_objects(text, font):
-    textSurface = font.render(text, True, BLACK)
-    return textSurface, textSurface.get_rect()
+#FIN___________________________________________________________________________
+def win_screen():
+
+    mixer.music.stop()
+    mixer.music.load('./musica/win.mp3')
+    mixer.music.play(-1)
+    mixer.music.set_volume(0.3)
+
+
+    screen.fill(BLACK)
+    message = "¡Felicidades! Has encontrado el cáliz"
+    message = (pygame.font.SysFont("Helvetica", 40)).render(message, 10, pygame.Color("white"))
+    screen.blit(message, (30,200))
+    pygame.display.flip()
+    pygame.time.wait(5000)
+
+def fail_screen():
+
+    mixer.music.stop()
+    mixer.music.load('./musica/fail.mp3')
+    mixer.music.play(-1)
+    mixer.music.set_volume(0.4)
+
+    screen.fill(BLACK)
+    message = "¡Has perdido! El tiempo se ha acabado"
+    message = (pygame.font.SysFont("Helvetica", 40)).render(message, 10, pygame.Color("white"))
+    screen.blit(message, (30,200))
+    pygame.display.flip()
+    pygame.time.wait(5000)
 
 
 #RUNNING GAME_____________________________________________________________________________________________
@@ -79,11 +105,12 @@ def running(screen, map, musica, nivel):
         fps = (pygame.font.SysFont("Helvetica", 20)).render(fps, 10, pygame.Color("red"))
         screen.blit(fps, (525,10))
        
-        if pygame.time.get_ticks() < 60000:
+        if pygame.time.get_ticks() < 6000:
             message = "Tiempo restante: " + str(60 - pygame.time.get_ticks()//1000)
             message = (pygame.font.SysFont("Helvetica", 20)).render(message, 10, pygame.Color("white"))
             screen.blit(message, (110,10))
         else:
+            fail_screen()
             running = False
 
         #Verificar si el jugador a alzanado el caliz
@@ -92,11 +119,13 @@ def running(screen, map, musica, nivel):
 
         if(nivel == 1):
             if 420 <= x <= 440 and 420 <= y <= 440:
+                win_screen()
                 running = False
-        elif(nivel == 2):
             if 340 <= x <= 360 and 420 <= y <= 440:
+                win_screen()
                 running = False
 
+        #eventos
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running= False
@@ -166,3 +195,4 @@ mixer.music.play(-1)
 mixer.music.set_volume(0.3)
 
 menu.mainloop(screen, fps_limit=60.0)
+
