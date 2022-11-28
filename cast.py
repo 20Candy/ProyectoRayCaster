@@ -1,142 +1,191 @@
 import pygame
 from math import *
-import pygame_menu
-from pygame import mixer
-from Raycaster import *
 
-#COLORES_______________________________________________________________________
-BLACK = (0,0,0)
-WHITE = (255,255,255)
-SKY = (8,27,69)
-GROUND = (4,28,4)
-TRANSPARENT = (152,0,136,0)
+#WALLS___________________________________________________________________________
+walls = {
+    '1': pygame.image.load('./pared/pared1.png'),
+    '2': pygame.image.load('./pared/pared2.png'),
+    '3': pygame.image.load('./pared/pared3.png'),
+    '4': pygame.image.load('./pared/pared4.png'),
+}
 
-#MUSICA________________________________________________________________________
-def music(music, opt=0):
-    if opt == 0:
-        mixer.music.stop()
-        mixer.music.load(music)
-        mixer.music.play(-1)
-        mixer.music.set_volume(0.3)
-    else:
-        effect = mixer.Sound(music)
-        effect.set_volume(0.2)
-        effect.play()
+#JUGADOR_________________________________________________________________________
+varita = pygame.image.load('./personaje/varita.png')
+ins = pygame.image.load('./instrucciones/ins.png')
 
-#FPS___________________________________________________________________________
-def FPS():
-    fps = str("FPS: "+str(int((pygame.time.Clock()).get_fps())))
-    fps = (pygame.font.SysFont("Arial", 20)).render(fps, 10, pygame.Color("white"))
-    return fps
+#RAYCASTER_______________________________________________________________________
+class Raycaster(object):
+    def __init__(self, screen):
+        _, _, self.width, self.height= screen.get_rect()
+        self.screen = screen
+        self.blocksize = 50
+        self.player = {
+            'x': int(self.blocksize + self.blocksize / 2),
+            'y': int(self.blocksize + self.blocksize / 2),
+            'fov': int(pi/3),
+            'a': int(pi/3),
+        }
+        self.map = []
+        self.clearZ()
 
-############################################################################################################
-#RUNNING GAME_____________________________________________________________________________________________
-def running(screen, map, musica):
-    r = Raycaster(screen)
-    #cargar el mapar
-    r.load_map(map)
+    #CLEAR ZBUFFER________________________________________________________________
+    def clearZ(self):
+        self.zbuffer = [9999 for z in range(0,self.width)]
 
-    #cargar la musica
-    music(musica)
-    music('./efectos/open.mp3',1)        
-    clock = pygame.time.Clock()
+    #CLEAR  
+    def clear(self):
+        for x in range(self.width):
+            for y in range(self.height):
+                r = int((x/self.width)*255) if x/self.width < 1 else 1
+                g = int((y/self.height)*255) if y/self.height < 1 else 1
+                b = 0
+                color = (r, g, b)
+                self.point(x, y, color)
 
-    #inicializacion variable running
-    running = True
+    #DRAW POINT ON SCREEN_________________________________________________________
+    def point(self, x, y, c=(255,255,255)):
+        self.screen.set_at((x,y),c)
 
-    #posicion inicial del jugador
-    x = r.player['x']
-    y = r.player['y']
-    a = r.player['a']
+    #RECTANGLE___________________________________________________________________
+    def draw_rectangle(self, x, y, texture):
+        for cx in range(x, x + 50):
+            for cy in range(y, y + 50):
+                tx = int((cx - x)*128 / 50)
+                ty = int((cy - y)*128 / 50)
+                c = texture.get_at((tx, ty))
+                self.point(cx, cy, c)
 
-    #movimiento
-    movement = 5
+    #LOAD MAP______________________________________________________________________
+    def load_map(self, filename):
+        with open(filename) as f:
+            for line in f.readlines():
+                self.map.append(list(line))
 
 
-    while running:
-        #fondo
-        screen.fill(BLACK,(0,0,100,r.height))
-        screen.fill(SKY,(100,0,900,r.height/2))
-        screen.fill(GROUND, (100,r.height/2,900,r.height/2))
+    #DRAW RAY_____________________________________________________________________
+    def cast_ray(self, a):
+        d = 0
 
-        try:
-            r.render()
-            r.clearZ()
-        except:
-            r.player['x'] = x
-            r.player['y'] = y
+        while True:
+            x = self.player["x"] + d*cos(a)
+            y = self.player["y"] + d*sin(a)
 
-        #contador de fps en pantalla
-        fps = str("FPS: "+str(int(clock.get_fps())))
-        fps = (pygame.font.SysFont("Helvetica", 20)).render(fps, 10, pygame.Color("red"))
-        screen.blit(fps, (525,10))
+            i = int(x/50)
+            j = int(y/50)
+        
+            if self.map[j][i] != ' ':
+                hitx = x - i*50
+                hity = y - j*50
 
-        x = r.player['x']
-        y = r.player['y']
+                if 1 < hitx < 49:
+                    maxhit = hitx
+                else:
+                    maxhit = hity
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running= False
+                tx = int(maxhit * 128 / 50)
+                return d, self.map[j][i], tx
 
-            keys = pygame.key.get_pressed()
+            self.point(int(x/5),int(y/5))  #cambio de escala
+            d += 1
 
-            if event.type == pygame.MOUSEMOTION:
-                r.player['a'] += event.rel[0]/200
+    #STAKE_______________________________________________________________________
+    def draw_stake(self,x,h,texture,tx):
+        start = int(self.height/2 - h/2)
+        end = int(self.height/2 + h/2)
 
-            if keys[pygame.K_a]:
-                r.player['a'] -= pi/10
-            if keys[pygame.K_d]:
-                r.player['a'] += pi/10
+        for y in range(start,end):
+            ty = int((y-start) * 128 / (end - start))
+            color = walls[texture].get_at((tx,ty))
+            self.point(x,y,color)
 
-            if keys[pygame.K_UP] or keys[pygame.K_w]:
-                r.player['x'] += cos(r.player['a']) * movement
-                r.player['y'] += sin(r.player['a']) * movement
-                music('./efectos/foot.mp3',1)        
-            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-                r.player['x'] -= cos(r.player['a']) * movement
-                r.player['y'] -= sin(r.player['a']) * movement
-                music('./efectos/foot.mp3',1)        
-            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                r.player['x'] -= cos(r.player['a'] + pi/2) * movement
-                r.player['y'] -= sin(r.player['a'] + pi/2) * movement
-            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                r.player['x'] += cos(r.player['a'] + pi/2) * movement
-                r.player['y'] += sin(r.player['a'] + pi/2) * movement
+    #DRAW SPRITE__________________________________________________________________
+    def draw_sprite(self,sprite):
+        sprite_a = atan2(sprite["y"] - self.player["y"], sprite["x"] - self.player["x"])   # why atan2? https://stackoverflow.com/a/12011762
 
-        clock.tick(60)
-        pygame.display.update()
-    
-    music('./musica/harry.mp3')
+        sprite_d = ((self.player["x"] - sprite["x"])**2 + (self.player["y"] - sprite["y"])**2)**0.5
+        sprite_size = (500/sprite_d) * 70
 
-pygame.init()
-screen = pygame.display.set_mode((600,500))
+        sprite_x = 500 + (sprite_a - self.player["a"])*500/self.player["fov"] + 250 - sprite_size/2
+        sprite_y = 250 - sprite_size/2
 
-myimage = pygame_menu.baseimage.BaseImage(
-    image_path = './imagenes/caliz.jpg',
-    drawing_mode = pygame_menu.baseimage.IMAGE_MODE_FILL,
-)
+        sprite_x = int(sprite_x)
+        sprite_y = int(sprite_y)
+        sprite_size = int(sprite_size)
 
-Theme = pygame_menu.themes.Theme
-harry = Theme(background_color = myimage,
-                title_background_color = (102, 0, 0),
-                title_font = pygame_menu.font.FONT_NEVIS,
-                title_font_color = (255, 255, 255),
-                title_font_size = 67,
-                cursor_selection_color = (224, 156, 9),
-                selection_color = (224, 156, 9),
-                widget_font = pygame_menu.font.FONT_NEVIS,
-                widget_alignment = pygame_menu.locals.ALIGN_CENTER,
-                widget_font_color=(255, 255, 255),
-                widget_background_color=(102, 0, 0),
-                widget_padding = (10,20),
-                widget_margin = (0,20))
+        for x in range(sprite_x, sprite_x + sprite_size):
+            for y in range(sprite_y, sprite_y + sprite_size):
+                if 500 < x < 1000 and self.zbuffer[x - 500] >= sprite_d:
+                    tx = int((x - sprite_x) * 128/sprite_size)
+                    ty = int((y - sprite_y) * 128/sprite_size)
+                    c = sprite["texture"].get_at((tx, ty))
+                    if c != (152, 0, 136, 255):
+                        self.point(x, y, c)
+                    self.zbuffer[x - 500] = sprite_d
 
+    #DRAW BLOCK FROM MAP__________________________________________________________
+    def block(self, x,y, wall):
+        for i in range(x,x + 10):
+            for j in range(y,y + 10):
+                tx = int((i - x) * 128 /10)
+                ty = int((j - y) * 128 / 10)
+                c = wall.get_at((tx,ty))
+                self.point(i,j,c)
+
+    #DRAW MAP_____________________________________________________________________
+    def draw_map(self):
+        size = 10
+        for x in range(0,100,size):
+            for y in range(0,100,size):
+                i = int(x / size)
+                j = int(y / size)
                 
-menu = pygame_menu.Menu('Harry Potter Maze', 600, 500, theme=harry)
+                if self.map[j][i] != ' ':
+                    if self.map[j][i] != '\n':
+                        self.block(x,y, walls[self.map[j][i]])
 
-menu.add.button('Nivel 1', running, screen ,'./niveles/map.txt', './musica/level1.mp3')
-menu.add.button('Nivel 2', running, screen, './niveles/map2.txt', './musica/level2.mp3')
-menu.add.button('Cerrar', pygame_menu.events.EXIT)
+    #DRAW WEAPON_________________________________________________________________
+    def draw_weapon(self, xi, yi, w = 250, h = 250):
+        for x in range(xi, xi + w):
+            for y in range(yi, yi + h):
+                tx = int((x - xi) * 128/w)
+                ty = int((y - yi) * 128/h)
+                c = varita.get_at((tx, ty))
+                if c != (152,0,136,255):
+                    self.point(x,y,c)
 
-music('./musica/harry.mp3')
-menu.mainloop(screen, fps_limit=60.0)
+    #DRAW PLAYER__________________________________________________________________
+    def draw_player(self):
+        self.point(int(self.player['x']/5),int(self.player['y']/5))
+
+    #DRAW INSRUCTIONS_____________________________________________________________
+    def draw_Ins(self,xi,yi, w = 200, h = 350):
+        for x in range(xi, xi + w):
+            for y in range(yi, yi + h):
+                tx = int((x - xi) * 128/w)
+                ty = int((y - yi) * 128/h)
+                c = ins.get_at((tx, ty))
+                self.point(x,y,c)
+
+    ############################################################################################################
+    #RENDER_____________________________________________________________________________________________________
+    def render(self):
+        self.draw_map()
+        self.draw_player()
+
+        size = 500
+        margen = 100
+
+        for i in range(0,int(size)):
+            a = self.player['a'] - self.player['fov']/2 + self.player['fov'] * i/(size)
+            d,c,tx = self.cast_ray(a)
+
+            x = int(margen) + i
+            h = self.height/(d * cos(a - self.player['a'])) * self.height /10
+
+            if self.zbuffer[i] >= d:
+                self.draw_stake(x,h,c,tx)
+                self.zbuffer[i] = d
+
+        self.draw_weapon(300,250)
+        #self.draw_Ins(10,120)
+    
