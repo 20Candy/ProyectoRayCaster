@@ -18,7 +18,7 @@ def text_objects(text, font):
 
 
 #RUNNING GAME_____________________________________________________________________________________________
-def running(screen, map, musica):
+def running(screen, map, musica, nivel):
     r = Raycaster(screen)
     #cargar el mapar
     r.load_map(map)
@@ -86,11 +86,16 @@ def running(screen, map, musica):
         else:
             running = False
 
+        #Verificar si el jugador a alzanado el caliz
         x = r.player['x']
         y = r.player['y']
 
-        if 420 <= x <= 440 and 420 <= y <= 440:
-            running = False
+        if(nivel == 1):
+            if 420 <= x <= 440 and 420 <= y <= 440:
+                running = False
+        elif(nivel == 2):
+            if 340 <= x <= 360 and 420 <= y <= 440:
+                running = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -150,8 +155,8 @@ screen = pygame.display.set_mode((600,500))
 #pantalla de menu
 h = harry()
 menu = pygame_menu.Menu('Harry Potter Maze', 600, 500, theme=h)
-menu.add.button('El torneo de los 3 magos', running, screen ,'./niveles/map.txt', './musica/level1.mp3')
-menu.add.button('Un encuentro tenebroso', running, screen, './niveles/map2.txt', './musica/level2.mp3')
+menu.add.button('El torneo de los 3 magos', running, screen ,'./niveles/map.txt', './musica/level1.mp3', 1)
+menu.add.button('Un encuentro tenebroso', running, screen, './niveles/map2.txt', './musica/level2.mp3', 2)
 menu.add.button('Cerrar', pygame_menu.events.EXIT)
 
 #musica de patanlla de inicio
