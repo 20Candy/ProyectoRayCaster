@@ -12,3 +12,7 @@
 #### 10 puntos pantalla multiples niveles
 #### TOTAL 110
 
+![WhatsApp Image 2022-11-27 at 6 53 14 PM](https://user-images.githubusercontent.com/60670458/204170587-6cdd19e1-1cf4-458e-b2d5-045a60470c63.jpeg)
+
+
+![WhatsApp Image 2022-11-27 at 6 50 14 PM](https://user-images.githubusercontent.com/60670458/204170594-f2516f50-7652-447c-9237-db4e298991fd.jpeg)
